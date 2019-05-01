@@ -1,0 +1,10 @@
+<analyses>
+    <anlys type="basic">
+        <species>subject_energy, delta_env_energy</species>
+        <cell-start>0</cell-start>
+        <cell-end>10</cell-end>
+        <time-start>0</time-start>
+        <time-end>10</time-end>
+        <out-file>out/data.csv</out-file>
+    </anlys>
+</analyses>
