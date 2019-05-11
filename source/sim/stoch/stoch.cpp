@@ -56,7 +56,7 @@ Minutes Stochastic_Simulation::generateTau() {
 */
 Minutes Stochastic_Simulation::getSoonestDelay() const {
   return event_schedule.empty() ?
-    Minutes{ std::numeric_limits<Real>::max() } :
+    Minutes{ std::numeric_limits<Real>::infinity() } :
     event_schedule.top().time;
 }
 
@@ -70,12 +70,10 @@ Minutes Stochastic_Simulation::time_until_next_event() const {
  * precondition: a delay reaction is scheduled
  * postcondition: the soonest scheduled delay reaction is removed from the schedule
 */
-void Stochastic_Simulation::executeDelayRXN(){
-  if (!event_schedule.empty()) {
-    event delay_rxn = event_schedule.top();
-    fireReaction(delay_rxn.cell, delay_rxn.rxn);
-    event_schedule.pop();
-  }
+void Stochastic_Simulation::executeDelayRXN() {
+  event delay_rxn = event_schedule.top();
+  fireReaction(delay_rxn.cell, delay_rxn.rxn);
+  event_schedule.pop();
 }
 
 /*
