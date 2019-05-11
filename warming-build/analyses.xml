@@ -1,6 +1,6 @@
 <analyses>
     <anlys type="basic">
-        <species>subject_energy, delta_env_energy</species>
+        <species>all</species>
         <cell-start>0</cell-start>
         <cell-end>10</cell-end>
         <time-start>0</time-start>

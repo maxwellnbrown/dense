@@ -13,4 +13,4 @@
 # This file can contain more than one set (each being on their own line). All sets are initialized and executed in parallel when a file is loaded into the simulation.
 # For more information and examples see README.md section 2.2.1
 
-warming, , , 
+red_warming, green_warming, blue_warming, red_green_diffusion, green_blue_diffusion, , , rcrit_rcrit_red_room_dT, rcrit_rcrit_green_room_dT, rcrit_rcrit_blue_room_dT, 

@@ -2,20 +2,17 @@
 //   be simulated.
 // Each reaction must have a declared reaction rate function in
 //   model_impl.h
-// For example, to declare three reactions named "one", "two", and "three",
-// use the syntax below
-//#define LIST_OF_SPECIES
-//  SPECIE(specie_one)
-//  SPECIE(two)
-//  SPECIE(three)
-
 
 #ifndef CRITICAL_SPECIE
 #define CRITICAL_SPECIE SPECIE
 #define UNDO_CRITICAL_SPECIE_DEF
 #endif
-SPECIE(delta_env_energy)
-SPECIE(subject_energy)
+CRITICAL_SPECIE(red_room_dT)
+SPECIE(red_box_T)
+CRITICAL_SPECIE(green_room_dT)
+SPECIE(green_box_T)
+CRITICAL_SPECIE(blue_room_dT)
+SPECIE(blue_box_T)
 #ifdef UNDO_CRITICAL_SPECIE_DEF
 #undef CRITICAL_SPECIE
 #undef UNDO_CRITICAL_SPECIE_DEF

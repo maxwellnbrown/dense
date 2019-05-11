@@ -19,5 +19,5 @@
 #   y2 - end multiplier
 # For more information and examples see README.md section 2.2.2
 
-grad_x1_warming, grad_y1_warming, grad_x2_warming, grad_y2_warming, , , , 
-0, 0, 0, 0, , , , 
+grad_x1_red_warming, grad_y1_red_warming, grad_x2_red_warming, grad_y2_red_warming, , grad_x1_green_warming, grad_y1_green_warming, grad_x2_green_warming, grad_y2_green_warming, , grad_x1_blue_warming, grad_y1_blue_warming, grad_x2_blue_warming, grad_y2_blue_warming, , grad_x1_red_green_diffusion, grad_y1_red_green_diffusion, grad_x2_red_green_diffusion, grad_y2_red_green_diffusion, , grad_x1_green_blue_diffusion, grad_y1_green_blue_diffusion, grad_x2_green_blue_diffusion, grad_y2_green_blue_diffusion, , , , grad_x1_rcrit_rcrit_red_room_dT, grad_y1_rcrit_rcrit_red_room_dT, grad_x2_rcrit_rcrit_red_room_dT, grad_y2_rcrit_rcrit_red_room_dT, , grad_x1_rcrit_rcrit_green_room_dT, grad_y1_rcrit_rcrit_green_room_dT, grad_x2_rcrit_rcrit_green_room_dT, grad_y2_rcrit_rcrit_green_room_dT, , grad_x1_rcrit_rcrit_blue_room_dT, grad_y1_rcrit_rcrit_blue_room_dT, grad_x2_rcrit_rcrit_blue_room_dT, grad_y2_rcrit_rcrit_blue_room_dT, , 
+0, 0, 0, 0, , 0, 0, 0, 0, , 0, 0, 0, 0, , 0, 0, 0, 0, , 0, 0, 0, 0, , , , 0, 0, 0, 0, , 0, 0, 0, 0, , 0, 0, 0, 0, , 

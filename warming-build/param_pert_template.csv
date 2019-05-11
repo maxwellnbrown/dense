@@ -14,5 +14,5 @@
 # Use '0' to indicate that a reaction should not have perturbations.
 # For more information and examples see README.md section 2.2.2
 
-pert_warming, , , 
-0, , , 
+pert_red_warming, pert_green_warming, pert_blue_warming, pert_red_green_diffusion, pert_green_blue_diffusion, , , pert_rcrit_rcrit_red_room_dT, pert_rcrit_rcrit_green_room_dT, pert_rcrit_rcrit_blue_room_dT, 
+0, 0, 0, 0, 0, , , 0, 0, 0, 

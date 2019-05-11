@@ -2,18 +2,16 @@
 //   be simulated.
 // Each reaction must have a declared reaction rate function in
 //   model_impl.h
-// For example, to declare three reactions named "one", "two", and "three",
-// of which "three" is a delayed reaction, use the syntax below.
-//
-//  REACTION(one)
-//  REACTION(two)
-//  DELAY_REACTION(three)
 
 #ifndef DELAY_REACTION
 #define DELAY_REACTION REACTION
 #define UNDO_DELAY_REACTION_DEF
 #endif
-REACTION(warming)
+REACTION(red_warming)
+REACTION(green_warming)
+REACTION(blue_warming)
+REACTION(red_green_diffusion)
+REACTION(green_blue_diffusion)
 #ifdef UNDO_DELAY_REACTION_DEF
 #undef DELAY_REACTION
 #undef UNDO_DELAY_REACTION_DEF
