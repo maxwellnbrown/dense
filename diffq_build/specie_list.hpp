@@ -1,0 +1,41 @@
+// In this file, we declare the X-Macro for the list of reactions to
+//   be simulated.
+// Each reaction must have a declared reaction rate function in
+//   model_impl.h
+// For example, to declare three reactions named "one", "two", and "three",
+// use the syntax below
+//#define LIST_OF_SPECIES
+//  SPECIE(specie_one)
+//  SPECIE(two)
+//  SPECIE(three)
+
+#ifndef CRITICAL_SPECIE
+#define CRITICAL_SPECIE SPECIE
+#define UNDO_CRITICAL_SPECIE_DEF
+#endif
+CRITICAL_SPECIE(A0)
+CRITICAL_SPECIE(A1)
+CRITICAL_SPECIE(A2)
+CRITICAL_SPECIE(A3)
+CRITICAL_SPECIE(A4)
+CRITICAL_SPECIE(A5)
+CRITICAL_SPECIE(A6)
+CRITICAL_SPECIE(A7)
+CRITICAL_SPECIE(A8)
+CRITICAL_SPECIE(A9)
+CRITICAL_SPECIE(A10)
+CRITICAL_SPECIE(A11)
+CRITICAL_SPECIE(A12)
+CRITICAL_SPECIE(A13)
+CRITICAL_SPECIE(A14)
+CRITICAL_SPECIE(A15)
+CRITICAL_SPECIE(A16)
+CRITICAL_SPECIE(A17)
+CRITICAL_SPECIE(A18)
+CRITICAL_SPECIE(A19)
+CRITICAL_SPECIE(A20)
+
+#ifdef UNDO_CRITICAL_SPECIE_DEF
+#undef CRITICAL_SPECIE
+#undef UNDO_CRITICAL_SPECIE_DEF
+#endif

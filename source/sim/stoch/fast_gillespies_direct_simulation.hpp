@@ -1,5 +1,5 @@
-#ifndef SIM_STOCH_HPP
-#define SIM_STOCH_HPP
+#ifndef SIM_STOCH_FAST_HPP
+#define SIM_STOCH_FAST_HPP
 
 #include "sim/base.hpp"
 #include "core/parameter_set.hpp"
@@ -20,11 +20,11 @@ namespace dense {
  * uses Gillespie's tau leaping algorithm
  * uses Barrio's delay SSA
 */
-class Stochastic_Simulation : public Simulation {
+class Fast_Gillespies_Direct_Simulation : public Simulation {
 
 public:
 
-    using Context = dense::Context<Stochastic_Simulation>;
+    using Context = dense::Context<Fast_Gillespies_Direct_Simulation>;
 
  private:
 
@@ -81,7 +81,7 @@ public:
      * calls simulation base constructor
      * initializes fields "t" and "generator"
     */
-    Stochastic_Simulation(const Parameter_Set& ps, Real* pnFactorsPert, Real** pnFactorsGrad, int cell_count, int width_total, int seed)
+    Fast_Gillespies_Direct_Simulation(const Parameter_Set& ps, Real* pnFactorsPert, Real** pnFactorsGrad, int cell_count, int width_total, int seed)
     : Simulation(ps, cell_count, width_total, pnFactorsPert, pnFactorsGrad)
     , concs(cell_count, std::vector<int>(NUM_SPECIES, 0))
     , propensities(cell_count)
@@ -149,7 +149,7 @@ public:
      * recalculates the propensities of reactions affected by the firing of "rid"
      * arg "rid": the reaction that fired
     */
-/*    CUDA_AGNOSTIC
+    CUDA_AGNOSTIC
     __attribute_noinline__ void update_propensities(dense::Natural cell_, reaction_id rid) {
         #define REACTION(name) \
         for (std::size_t i=0; i< propensity_network[rid].size(); i++) { \
@@ -174,29 +174,7 @@ public:
             } \
         }
         #include "reactions_list.hpp"
-        #undef REACTION 
-    }
-*/
-    CUDA_AGNOSTIC
-    __attribute_noinline__ void update_propensities(dense::Natural cell_, reaction_id rid) {
-        #define REACTION(name) \
-        for (auto rxname : propensity_network) { \
-            auto id = rxname[0]; \
-            for (std::size_t r=0; r< propensity_network[id].size(); r++) { \
-                if (name == propensity_network[id][r]) { \
-                    for (dense::Natural n=0; n < neighbor_count_by_cell_[cell_]; n++) { \
-                        int n_cell = neighbors_by_cell_[cell_][n]; \
-                        auto& p = propensities[n_cell][name];\
-                        auto new_p = dense::model::reaction_##name.active_rate(Context(*this, n_cell)); \
-                        total_propensity_ += new_p - p;\
-                        p = new_p;\
-                    } \
-                } \
-            } \
-        }
-        #include "reactions_list.hpp"
         #undef REACTION
-    }
         /*for (auto rxn : propensity_network[rid]) {
           auto& p = propensities[cell_][rxn];
           auto new_p = dense::model::active_rate(rxn, Context(this, cell_));
@@ -212,6 +190,7 @@ public:
             p = new_p;
           }
         }*/
+    }
 
 
   /*
@@ -238,4 +217,5 @@ public:
 };
 
 }
+
 #endif
