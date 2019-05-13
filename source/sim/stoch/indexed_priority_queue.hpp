@@ -1,4 +1,5 @@
 #include <utility>
+#include <vector>
 #include <functional>
 #include <type_traits>
 
@@ -7,7 +8,6 @@ namespace stochastic {
 
   template <
     typename I,
-    I MaxSize,
     typename T,
     typename Compare = std::less<T>
   >
@@ -39,9 +39,13 @@ namespace stochastic {
       using reference = value_type&;
       using const_reference = value_type const&;
    
-      indexed_priority_queue() = default;
+      indexed_priority_queue() = delete;
 
-      indexed_priority_queue(Compare compare) : _compare{compare} {};
+      indexed_priority_queue(I max_size, Compare compare = Compare{}) :
+        _max_size{static_cast<node_type>(max_size)},
+        _compare{compare},
+        _heap(_max_size),
+        _map(_max_size, null_node()) {};
 
       indexed_priority_queue(indexed_priority_queue const&) = default;
 
@@ -53,7 +57,7 @@ namespace stochastic {
 
       ~indexed_priority_queue() = default;
 
-      constexpr size_type max_size() const {
+      size_type max_size() const {
         return _max_size;
       }
 
@@ -67,7 +71,7 @@ namespace stochastic {
 
       void push(value_type value) {
         auto& node = node_at(value.first);
-        if (node == null_node) {
+        if (node == null_node()) {
           ++_size;
           node = last();
         }
@@ -84,7 +88,7 @@ namespace stochastic {
         }
         --_size;
         sift_down(node);
-        node_at(i) = null_node;
+        node_at(i) = null_node();
       };
 
       const_iterator begin() const {
@@ -105,12 +109,12 @@ namespace stochastic {
 
       const_iterator find(index_type i) const {
         auto node = node_at(i);
-        return node == null_node ? end() : iterator_for(node);
+        return node == null_node() ? end() : iterator_for(node);
       };
 
       mapped_type const& at(index_type i) const {
         auto node = node_at(i);
-        if (node == null_node) {
+        if (node == null_node()) {
           throw std::out_of_range("Index out of range");
         }
         return value_of(node).second;
@@ -201,17 +205,15 @@ namespace stochastic {
         return node != start;
       };
 
-      static constexpr node_type _max_size = static_cast<node_type>(MaxSize);
+      node_type _max_size;
 
-      static constexpr node_type null_node = _max_size;
+      node_type null_node() const {
+        return _max_size;
+      };
 
-      std::array<value_type, _max_size> _heap;
+      std::vector<value_type> _heap;
 
-      std::array<node_type, _max_size> _map = ([]() {
-        std::array<node_type, _max_size> map;
-        map.fill(null_node);
-        return map;
-      })();
+      std::vector<node_type> _map;
 
       node_type _size = 0;
 
