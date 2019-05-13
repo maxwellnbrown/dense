@@ -7,7 +7,7 @@ namespace stochastic {
 
   template <
     typename I,
-    I Capacity,
+    I MaxSize,
     typename T,
     typename Compare = std::less<T>
   >
@@ -20,7 +20,11 @@ namespace stochastic {
       template <typename E>
       using underlying_if_enum = std::conditional_t<
         std::is_enum<E>::value,
-        std::underlying_type_t<std::conditional_t<std::is_enum<E>::value, E, ignore>>, E>;
+        std::underlying_type_t<
+          std::conditional_t<std::is_enum<E>::value, E, ignore>
+        >,
+        E
+      >;
 
     public:
 
@@ -35,91 +39,123 @@ namespace stochastic {
       using reference = value_type&;
       using const_reference = value_type const&;
    
-      indexed_priority_queue() {
-        _map.fill(_capacity);
-      };
-      indexed_priority_queue(Compare compare) : _compare{compare} {
-        _map.fill(_capacity);
+      indexed_priority_queue() = default;
+
+      indexed_priority_queue(Compare compare) : _compare{compare} {};
+
+      indexed_priority_queue(indexed_priority_queue const&) = default;
+
+      indexed_priority_queue(indexed_priority_queue &&) = default;
+
+      indexed_priority_queue& operator=(indexed_priority_queue const&) = default;
+
+      indexed_priority_queue& operator=(indexed_priority_queue &&) = default;
+
+      ~indexed_priority_queue() = default;
+
+      constexpr size_type max_size() const {
+        return _max_size;
+      }
+
+      size_type size() const {
+        return _size;
       };
 
-      constexpr size_type capacity() const { return _capacity; }
-      size_type size() const { return _size; };
-      bool empty() const { return _size == 0; };
+      bool empty() const {
+        return _size == 0;
+      };
 
-      // pre: value does not have an index that is already in pq
       void push(value_type value) {
-        // if the index is already present, updates the time
-        auto i = static_cast<node_type>(value.first);
-        if (_map[i] == _capacity) {
-          _heap[_size] = value;
-          _map[i] = _size;
+        auto& node = node_at(value.first);
+        if (node == null_node) {
           ++_size;
-          sift_up();
-        } else {
-          _heap[_map[i]] = value;
-          sift_from(_map[i]);
+          node = last();
         }
+        value_of(node) = value;
+        sift_up(node) || sift_down(node);
       };
 
-      // pre: pq is not empty
       void pop() {
         if (empty()) return;
-        auto i = static_cast<node_type>(top().first);
-        auto top = root();
-        auto bottom = last();
-        if (bottom != top) {
-          swap(top, bottom);
+        auto node = root();
+        auto i = value_of(node).first;
+        if (node != last()) {
+          swap(node, last());
         }
         --_size;
-        sift_down();
-        _map[i] = _capacity;
+        sift_down(node);
+        node_at(i) = null_node;
       };
 
       const_iterator begin() const {
-        return &top();
+        return iterator_for(root());
       };
 
       const_iterator end() const {
-        return &_heap[last() + 1];
+        return iterator_for(last()) + 1;
       };
 
-      const_reference top() const { return _heap[root()]; };
+      const_reference top() const {
+        return value_of(root());
+      };
 
       mapped_type const& operator[](index_type i) const {
-        return _heap[_map[i]].second;
+        return value_of(node_at(i)).second;
       };
 
       const_iterator find(index_type i) const {
-        return _map[i] == _capacity ? end() : &operator[](i);
+        auto node = node_at(i);
+        return node == null_node ? end() : iterator_for(node);
       };
 
       mapped_type const& at(index_type i) const {
-        auto x = find(i);
-        if (x == end()) {
-          throw std::out_of_range("AIOOBE");
+        auto node = node_at(i);
+        if (node == null_node) {
+          throw std::out_of_range("Index out of range");
         }
-        return *x;
+        return value_of(node).second;
       };
-
 
       template <typename... Args>
       void emplace(Args&&... args) {
         push(value_type(std::forward<Args>(args)...));
       };
 
-      indexed_priority_queue (indexed_priority_queue const&) = default;
-      indexed_priority_queue (indexed_priority_queue &&) = default;
-      indexed_priority_queue& operator=(indexed_priority_queue const&) = default;
-      indexed_priority_queue& operator=(indexed_priority_queue &&) = default;
-      ~indexed_priority_queue() = default;
-
     private:
 
+      indexed_priority_queue const& const_this() const {
+        return static_cast<indexed_priority_queue const&>(*this);
+      }
+
       bool less(node_type a, node_type b) const {
-        return _compare(_heap[a].second, _heap[b].second);
+        return _compare(value_of(a).second, value_of(b).second);
       };
 
-      constexpr node_type root() const { return 0; };
+      node_type const& node_at(index_type i) const {
+        return _map[static_cast<node_type>(i)];
+      };
+
+      node_type& node_at(index_type i) {
+        return const_cast<node_type &>(const_this().node_at(i));
+      };
+
+      const_iterator iterator_for(node_type node) const {
+        return _heap.data() + node;
+      }
+
+      iterator iterator_for(node_type node) {
+        return const_cast<iterator>(const_this().iterator_for(node));
+      }
+
+      const_reference value_of(node_type node) const {
+        return *iterator_for(node);
+      };
+
+      reference value_of(node_type node) {
+        return const_cast<reference>(const_this().value_of(node));
+      };
+
+      static constexpr node_type root() { return 0; };
       node_type last() const { return _size - 1; };
 
       node_type parent_of(node_type node) const {
@@ -142,9 +178,9 @@ namespace stochastic {
 
       void swap(node_type a, node_type b) {
         using std::swap;
-        swap(_heap[a], _heap[b]);
-        _map[static_cast<node_type>(_heap[a].first)] = a;
-        _map[static_cast<node_type>(_heap[b].first)] = b;
+        swap(value_of(a), value_of(b));
+        node_at(value_of(a).first) = a;
+        node_at(value_of(b).first) = b;
       };
 
       bool sift_up(node_type node) {
@@ -156,8 +192,6 @@ namespace stochastic {
         return node != start;
       };
 
-      bool sift_up() { return sift_up(last()); }
-
       bool sift_down(node_type node) {
         node_type start = node, min_child;
         while (left_of(node) < _size && less(min_child = min_child_of(node), node)) {
@@ -167,17 +201,21 @@ namespace stochastic {
         return node != start;
       };
 
-      bool sift_down() { return sift_down(root()); }
+      static constexpr node_type _max_size = static_cast<node_type>(MaxSize);
 
-      void sift_from(node_type node) {
-        sift_up(node) || sift_down(node);
-      }
+      static constexpr node_type null_node = _max_size;
 
-      static constexpr node_type _capacity = static_cast<node_type>(Capacity);
-      std::array<value_type, _capacity> _heap;
-      std::array<node_type, _capacity> _map;
-      node_type _size = static_cast<node_type>(0);
-      mapped_compare _compare;
+      std::array<value_type, _max_size> _heap;
+
+      std::array<node_type, _max_size> _map = ([]() {
+        std::array<node_type, _max_size> map;
+        map.fill(null_node);
+        return map;
+      })();
+
+      node_type _size = 0;
+
+      mapped_compare _compare{};
   };
 
 }
