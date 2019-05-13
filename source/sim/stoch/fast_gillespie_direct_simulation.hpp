@@ -20,11 +20,11 @@ namespace dense {
  * uses Gillespie's tau leaping algorithm
  * uses Barrio's delay SSA
 */
-class Fast_Gillespies_Direct_Simulation : public Simulation {
+class Fast_Gillespie_Direct_Simulation : public Simulation {
 
 public:
 
-    using Context = dense::Context<Fast_Gillespies_Direct_Simulation>;
+    using Context = dense::Context<Fast_Gillespie_Direct_Simulation>;
 
  private:
 
@@ -81,7 +81,7 @@ public:
      * calls simulation base constructor
      * initializes fields "t" and "generator"
     */
-    Fast_Gillespies_Direct_Simulation(const Parameter_Set& ps, Real* pnFactorsPert, Real** pnFactorsGrad, int cell_count, int width_total, int seed)
+    Fast_Gillespie_Direct_Simulation(const Parameter_Set& ps, Real* pnFactorsPert, Real** pnFactorsGrad, int cell_count, int width_total, int seed)
     : Simulation(ps, cell_count, width_total, pnFactorsPert, pnFactorsGrad)
     , concs(cell_count, std::vector<int>(NUM_SPECIES, 0))
     , propensities(cell_count)

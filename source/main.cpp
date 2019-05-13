@@ -7,8 +7,9 @@
 #include "io/csvr_sim.hpp"
 #include "io/csvw_sim.hpp"
 #include "sim/determ/determ.hpp"
-#include "sim/stoch/stoch.hpp"
-#include "sim/stoch/fast_gillespies_direct_simulation.hpp"
+#include "sim/stoch/gillespie_direct_simulation.hpp"
+#include "sim/stoch/fast_gillespie_direct_simulation.hpp"
+#include "sim/stoch/next_reaction_simulation.hpp"
 #include "model_impl.hpp"
 #include "io/ezxml/ezxml.h"
 
@@ -29,7 +30,8 @@ using dense::csvw_sim;
 using dense::CSV_Streamed_Simulation;
 using dense::Deterministic_Simulation;
 using dense::Stochastic_Simulation;
-using dense::Fast_Gillespies_Direct_Simulation;
+using dense::Fast_Gillespie_Direct_Simulation;
+using dense::stochastic::Next_Reaction_Simulation;
 
 std::string left_pad (std::string string, std::size_t min_size, char padding = ' ') {
   string.insert(string.begin(), min_size - std::min(min_size, string.size()), padding);
@@ -210,7 +212,7 @@ int main(int argc, char* argv[]) {
 
       run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
     } else {
-      using Simulation = Fast_Gillespies_Direct_Simulation;
+      using Simulation = Fast_Gillespie_Direct_Simulation;
       std::vector<Simulation> simulations;
 
       for (auto& parameter_set : parameter_sets) {

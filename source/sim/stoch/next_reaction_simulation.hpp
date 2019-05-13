@@ -1,5 +1,5 @@
-#ifndef SIM_STOCH_FAST_HPP
-#define SIM_STOCH_FAST_HPP
+#ifndef SIM_STOCH_NEXT_REACTION_SIMULATION_HPP
+#define SIM_STOCH_NEXT_REACTION_SIMULATION_HPP
 
 #include "sim/base.hpp"
 #include "core/parameter_set.hpp"
@@ -13,6 +13,7 @@
 #include <random>
 
 namespace dense {
+namespace stochastic {
 
 /*
  * STOCHASTIC SIMULATOR:
@@ -20,25 +21,27 @@ namespace dense {
  * uses Gillespie's tau leaping algorithm
  * uses Barrio's delay SSA
 */
-class Fast_Gillespies_Direct_Simulation : public Simulation {
+class Next_Reaction_Simulation : public Simulation {
 
 public:
 
-    using Context = dense::Context<Fast_Gillespies_Direct_Simulation>;
+    using Context = dense::Context<Next_Reaction_Simulation>;
 
+    using event_id = Natural;
  private:
 
     //"event" represents a delayed reaction scheduled to fire later
     struct event {
       Minutes time;
-	    Natural cell;
-      reaction_id rxn;
-	    friend bool operator<(event const& a, event const &b) { return a.time < b.time;}
-	    friend bool operator>(event const& a, event const& b) { return b < a; }
+      Natural cell;
+      reaction_id reaction;
+      friend bool operator<(event const& a, event const &b) { return a.time < b.time;}
+      friend bool operator>(event const& a, event const& b) { return b < a; }
     };
 
-    //"event_schedule" is a set ordered by time of delay reactions that will fire
-    std::priority_queue<event, std::vector<event>, std::greater<event>> event_schedule;
+    //"reaction_schedule" is a set ordered by time of delay reactions that will fire
+    std::priority_queue<event, std::vector<event>, std::greater<event>> reaction_schedule;
+    //indexed_priority_queue<event_id, Minutes> reaction_schedule;
 
     //"concs" stores current concentration levels for every species in every cell
     std::vector<std::vector<int> > concs;
@@ -54,7 +57,7 @@ public:
     Real total_propensity_ = {};
     static std::uniform_real_distribution<Real> distribution_;
 
-    Minutes generateTau();
+    Minutes generateTau(Real);
     Minutes getSoonestDelay() const;
     void executeDelayRXN();
     Real getRandVariable();
@@ -81,7 +84,7 @@ public:
      * calls simulation base constructor
      * initializes fields "t" and "generator"
     */
-    Fast_Gillespies_Direct_Simulation(const Parameter_Set& ps, Real* pnFactorsPert, Real** pnFactorsGrad, int cell_count, int width_total, int seed)
+    Next_Reaction_Simulation(const Parameter_Set& ps, Real* pnFactorsPert, Real** pnFactorsGrad, int cell_count, int width_total, int seed)
     : Simulation(ps, cell_count, width_total, pnFactorsPert, pnFactorsGrad)
     , concs(cell_count, std::vector<int>(NUM_SPECIES, 0))
     , propensities(cell_count)
@@ -213,9 +216,12 @@ public:
   private:
 
     Minutes time_until_next_event () const;
-
+  
+    void initTau();
+  
 };
 
+}
 }
 
 #endif

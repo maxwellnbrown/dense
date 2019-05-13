@@ -1,5 +1,5 @@
 #include <cmath>
-#include "stoch.hpp"
+#include "gillespie_direct_simulation.hpp"
 #include "sim/cell_param.hpp"
 #include "model_impl.hpp"
 #include "core/model.hpp"
