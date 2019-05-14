@@ -130,7 +130,7 @@ std::vector<Parameter_Set> parse_parameter_sets_csv(std::istream&& in) {
 std::vector<Species> default_specie_option;
 int cell_total;
 
-int main(int argc, char* argv[]) {
+int xmain(int argc, char* argv[]) {
   arg_parse::init(argc, argv);
   using style::Mode;
   style::configure(arg_parse::get<bool>("n", "no-color", nullptr, false) ? Mode::disable : Mode::force);
@@ -234,6 +234,131 @@ int main(int argc, char* argv[]) {
 
       run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
     } 
+    return EXIT_SUCCESS;
+
+  } else {
+    using Simulation = Deterministic_Simulation;
+    std::vector<Simulation> simulations;
+    for (auto& parameter_set : parameter_sets) {
+      simulations.emplace_back(
+        std::move(parameter_set), perturbation_factors, gradient_factors,
+        cell_total, tissue_width, Minutes{step_size});
+    }
+
+    run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
+    return EXIT_SUCCESS;
+  }
+
+}
+
+#include "utility/benchmarking.hpp"
+
+int main(int argc, char* argv[]) {
+  arg_parse::init(argc, argv);
+  using style::Mode;
+  style::configure(arg_parse::get<bool>("n", "no-color", nullptr, false) ? Mode::disable : Mode::force);
+
+  if (arg_parse::get<bool>("h", "help", false) || arg_parse::get<bool>("H", "usage", false) || argc == 1) {
+    display_usage(std::cout);
+    return EXIT_SUCCESS;
+  }
+  // These fields are somewhat universal
+  Real anlys_intvl, time_total;
+  std::chrono::duration<Real, std::chrono::minutes::period> simulation_duration, analysis_interval;
+  arg_parse::get<std::vector<Species>>("o", "specie-option", &default_specie_option, false);
+  // ========================== FILL simulations ==========================
+  // See if importing
+  // string is for either sim data import or export
+  std::string data_ioe;
+  if (arg_parse::get<std::string>("i", "data-import", &data_ioe, false)) {
+    using Simulation = CSV_Streamed_Simulation;
+    std::vector<Simulation> simulations;
+    simulations.emplace_back(data_ioe, default_specie_option);
+
+    if (!(arg_parse::get<Real>("t", "time-total", &time_total, true) &&
+    arg_parse::get<Real>("u", "anlys-intvl", &anlys_intvl, true))) {
+      std::cerr << "No time-total or anlys-intvl for CSV Simulation (fix in future)\n";
+      return EXIT_FAILURE;
+    }
+    simulation_duration = decltype(simulation_duration)(time_total);
+    analysis_interval = decltype(analysis_interval)(anlys_intvl);
+    run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
+    return EXIT_SUCCESS;
+  }
+  std::string param_sets;
+  int tissue_width;
+
+  // Required simulation fields
+  if (!(arg_parse::get<int>("c", "cell-total", &cell_total, true) &&
+          arg_parse::get<int>("w", "tissue-width", &tissue_width, true) &&
+          arg_parse::get<Real>("t", "time-total", &time_total, true) &&
+          arg_parse::get<Real>("u", "anlys-intvl", &anlys_intvl, true) &&
+          arg_parse::get<std::string>("p", "param-sets", &param_sets, true) )) {
+    std::cout << style::apply(Color::red) <<
+      "Error: Your current set of command line arguments produces a useless state. (No inputs are specified.) "
+      "Did you mean to use the [-i | --data-import] or the simulation-related flag(s)?\n" << style::reset();
+    return EXIT_FAILURE;
+  }
+  simulation_duration = decltype(simulation_duration)(time_total);
+  analysis_interval = decltype(analysis_interval)(anlys_intvl);
+
+  // If step_size not set, create stochastic simulation
+  Real step_size = arg_parse::get<Real>("s", "step-size", 0.0);
+  int seed = 0;
+  if (step_size == 0.0) {
+    if (!arg_parse::get<int>("r", "rand-seed", &seed, false)) {
+      seed = std::random_device()();
+    }
+    // Warn user that they are not running deterministic sim
+    std::cout << style::apply(Color::yellow) << "Running stochastic simulation. To run deterministic simulation, specify a step size using the [-s | --step-size] flag." << style::reset() << '\n';
+    std::cout << "Stochastic simulation seed: " << seed << '\n';
+  }
+
+  Real* perturbation_factors = parse_perturbations(
+    arg_parse::get<std::string>("b", "perturbations", ""));
+
+  Real** gradient_factors = parse_gradients(
+    arg_parse::get<std::string>("g", "gradients", ""), tissue_width);
+
+  auto parameter_sets = parse_parameter_sets_csv(std::ifstream(param_sets));
+
+  if (step_size == 0.0) {
+    pretty_benchmark<7>("Gillespie Direct", [&]() {
+      using Simulation = Stochastic_Simulation;
+      std::vector<Simulation> simulations;
+
+      for (auto& parameter_set : parameter_sets) {
+        simulations.emplace_back(
+          std::move(parameter_set), perturbation_factors, gradient_factors,
+          cell_total, tissue_width, seed);
+      }
+      run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
+      return 0;
+    });
+    /*pretty_benchmark<7>("Next Reaction", [&]() {
+      using Simulation = Next_Reaction_Simulation;
+      std::vector<Simulation> simulations;
+
+      for (auto& parameter_set : parameter_sets) {
+        simulations.emplace_back(
+          std::move(parameter_set), perturbation_factors, gradient_factors,
+          cell_total, tissue_width, seed);
+      }
+      run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
+      return 0;
+    });*/
+    pretty_benchmark<7>("Fast Gillespie Direct", [&]() {
+      using Simulation = Fast_Gillespie_Direct_Simulation;
+      std::vector<Simulation> simulations;
+
+      for (auto& parameter_set : parameter_sets) {
+        simulations.emplace_back(
+          std::move(parameter_set), perturbation_factors, gradient_factors,
+          cell_total, tissue_width, seed);
+      }
+      run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
+      return 0;
+    });
     return EXIT_SUCCESS;
 
   } else {

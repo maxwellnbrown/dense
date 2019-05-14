@@ -25,7 +25,7 @@ CUDA_AGNOSTIC
 Minutes Next_Reaction_Simulation::age_by (Minutes duration) {
   auto end_time = age() + duration;
   while (age() < end_time) {
-    std::cout << "Age: " << age() / Minutes{1} << '\n';
+    //std::cout << "Age: " << age() / Minutes{1} << '\n';
     // 2. Let mu be the reaction whose putative time, tau_mu, stored in P is least.
     auto next_reaction = reaction_schedule.top();
     // 3. Let tau be tau_mu.
@@ -36,7 +36,7 @@ Minutes Next_Reaction_Simulation::age_by (Minutes duration) {
     // 4. Change the number of molecules of reflect execution of reaction mu.
     fireOrSchedule(c, r);
     //    Set t <- tau.
-    std::cout << "Tau: " << tau / Minutes{1} << '\n';
+    //std::cout << "Tau: " << tau / Minutes{1} << '\n';
     Simulation::age_by(tau - age());
     // 5. For each edge (mu, alpha) in the dependency graph:
     update_propensities_and_taus(c, r);

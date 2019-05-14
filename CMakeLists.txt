@@ -14,7 +14,7 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 string(REPLACE ";" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} "
- "-g -fconcepts -pedantic -fmax-errors=3 -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy "
+ "-O3 -fconcepts -pedantic -fmax-errors=3 -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy "
  "-Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs "
  "-Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wstrict-null-sentinel -Wstrict-overflow=5 "
  "-Wswitch-default -Wundef -Wunused -Wzero-as-null-pointer-constant -Wuseless-cast -Wsuggest-override")
@@ -33,7 +33,7 @@ find_package(CUDA 6.0 QUIET)
 if (${CUDA_FOUND})
   SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
   set(CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-  set(CUDA_NVCC_FLAGS "-g;-arch=sm_30;--relocatable-device-code=true" )
+  set(CUDA_NVCC_FLAGS "-arch=sm_30;--relocatable-device-code=true" )
   if (CMAKE_VERSION VERSION_LESS 3.0.2)
     list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
   endif (CMAKE_VERSION VERSION_LESS 3.0.2)
