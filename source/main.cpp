@@ -211,6 +211,17 @@ int main(int argc, char* argv[]) {
       }
 
       run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
+    } else if (arg_parse::get<bool>("N", "next-reaction", false)) {
+      using Simulation = Next_Reaction_Simulation;
+      std::vector<Simulation> simulations;
+
+      for (auto& parameter_set : parameter_sets) {
+        simulations.emplace_back(
+          std::move(parameter_set), perturbation_factors, gradient_factors,
+          cell_total, tissue_width, seed);
+      }
+
+      run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
     } else {
       using Simulation = Fast_Gillespie_Direct_Simulation;
       std::vector<Simulation> simulations;
@@ -222,7 +233,7 @@ int main(int argc, char* argv[]) {
       }
 
       run_simulation(simulation_duration, analysis_interval, std::move(simulations), parse_analysis_entries<Simulation>());
-    }
+    } 
     return EXIT_SUCCESS;
 
   } else {

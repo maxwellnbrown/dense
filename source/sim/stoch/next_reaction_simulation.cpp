@@ -25,16 +25,22 @@ CUDA_AGNOSTIC
 Minutes Next_Reaction_Simulation::age_by (Minutes duration) {
   auto end_time = age() + duration;
   while (age() < end_time) {
-    Minutes tau, t_until_event;
-
-    while ((tau = generateTau(0)) > (t_until_event = time_until_next_event())) {
-      Simulation::age_by(t_until_event);
-      executeDelayRXN();
-      if (age() >= end_time) return age();
-    }
-
-    tauLeap();
-    Simulation::age_by(tau);
+    std::cout << "Age: " << age() / Minutes{1} << '\n';
+    // 2. Let mu be the reaction whose putative time, tau_mu, stored in P is least.
+    auto next_reaction = reaction_schedule.top();
+    // 3. Let tau be tau_mu.
+    auto tau = next_reaction.second;
+    auto cr_pair = decode(next_reaction.first);
+    auto c = cr_pair.first;
+    auto r = cr_pair.second;
+    // 4. Change the number of molecules of reflect execution of reaction mu.
+    fireOrSchedule(c, r);
+    //    Set t <- tau.
+    std::cout << "Tau: " << tau / Minutes{1} << '\n';
+    Simulation::age_by(tau - age());
+    // 5. For each edge (mu, alpha) in the dependency graph:
+    update_propensities_and_taus(c, r);
+    // 6. Go to step 2.
   }
   return age();
 }
@@ -44,10 +50,9 @@ Minutes Next_Reaction_Simulation::age_by (Minutes duration) {
  * return "tau": possible timestep leap calculated from a random variable
 */
 Minutes Next_Reaction_Simulation::generateTau(Real propensity) {
-  auto r = getRandVariable();
-  auto log_inv_r = -std::log(r);
- 
-	return Minutes{ log_inv_r / propensity};
+	auto result = Minutes{ -std::log(getRandVariable()) / propensity };
+  if (result.count() < 0) std::cout << "Prop: " << propensity << '\n';
+  return result;
 }
 
 /*
@@ -76,7 +81,7 @@ void Next_Reaction_Simulation::executeDelayRXN() {
 	std::pair<Natural, reaction_id> pair_ids = decode(next_reaction_pair.first);
 	
   fireReaction(pair_ids.first, pair_ids.second);
-  reaction_schedule.pop();
+  reaction_schedule.pop(); // TODO: UPDATE, DON"T POP
 }
 
 /*
@@ -145,13 +150,10 @@ void Next_Reaction_Simulation::fireReaction(dense::Natural cell, reaction_id rid
  * sets the propensities of each reaction in each cell to its respective active
 */
 void Next_Reaction_Simulation::initPropensities(){
-   total_propensity_ = 0.0;
     for (dense::Natural c = 0; c < cell_count(); ++c) {
         Context ctxt(*this,c);
         #define REACTION(name) \
-        propensities[c].push_back(dense::model::reaction_##name.active_rate(ctxt));\
-        total_propensity_ += propensities[c].back(); \
-        //reaction_schedule.push(c, cell, rid }); 
+        propensities[c].push_back(std::max(dense::model::reaction_##name.active_rate(ctxt), Real{0}));
         #include "reactions_list.hpp"
         #undef REACTION
     }
