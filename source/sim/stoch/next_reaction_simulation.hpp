@@ -7,6 +7,7 @@
 #include "core/specie.hpp"
 #include "sim/cell_param.hpp"
 #include "core/reaction.hpp"
+#include "indexed_priority_queue.hpp"
 #include <vector>
 #include <set>
 #include <queue>
@@ -40,7 +41,7 @@ public:
     };
 
     //"reaction_schedule" is a set ordered by time of delay reactions that will fire
-    std::priority_queue<event, std::vector<event>, std::greater<event>> reaction_schedule;
+    indexed_priority_queue<event_id, Minutes> reaction_schedule;
     //indexed_priority_queue<event_id, Minutes> reaction_schedule;
 
     //"concs" stores current concentration levels for every species in every cell
@@ -88,7 +89,8 @@ public:
     : Simulation(ps, cell_count, width_total, pnFactorsPert, pnFactorsGrad)
     , concs(cell_count, std::vector<int>(NUM_SPECIES, 0))
     , propensities(cell_count)
-    , generator{seed} {
+    , generator{seed}
+	  , reaction_schedule(NUM_REACTIONS * cell_count) {
       initPropensityNetwork();
       initPropensities();
     }
@@ -129,22 +131,14 @@ public:
 
     /*
      * CHOOSEREACTION
-     * randomly chooses a reaction biased by their propensities
-     * arg "propensity_portion": the propensity sum times a random variable between 0.0 and 1.0
-     * return "j": the index of the reaction chosen.
+     * Chooses reaction with smallest tau
+		 * returns j; the reaction id
     */
     CUDA_AGNOSTIC
-    __attribute_noinline__ int choose_reaction(Real propensity_portion) {
-      Real sum = 0;
-      for (Natural c = {}; c < cell_count(); ++c) {
-        for (Natural s = {}; s < NUM_REACTIONS; ++s) {
-          sum += propensities[c][s];
-          if (sum > propensity_portion) {
-            return (c * NUM_REACTIONS) + s;
-          }
-        }
-      }
-      return cell_count() * NUM_REACTIONS - 1;
+    __attribute_noinline__ std::pair<Natural, reaction_id> choose_reaction() {
+    		auto next_reaction_encoded_id = reaction_schedule.top().first;
+				auto decoded_event_id = decode(next_reaction_encoded_id);
+				return decoded_event_id;
     }
 
     /*
@@ -153,13 +147,22 @@ public:
      * arg "rid": the reaction that fired
     */
     CUDA_AGNOSTIC
-    __attribute_noinline__ void update_propensities(dense::Natural cell_, reaction_id rid) {
+    __attribute_noinline__ void update_propensities_and_taus(dense::Natural cell_, reaction_id rid) {
         #define REACTION(name) \
         for (std::size_t i=0; i< propensity_network[rid].size(); i++) { \
             if ( name == propensity_network[rid][i] ) { \
                 auto& p = propensities[cell_][name];\
                 auto new_p = dense::model::reaction_##name.active_rate(Context(*this, cell_)); \
                 total_propensity_ += new_p - p;\
+								\
+			          \
+								event_id cell_reaction_id = encode(cell_, propensity_network[rid][i]); \
+								Minutes t_old  = reaction_schedule[cell_reaction_id]; \
+								Minutes current_age = age();\
+								Minutes t_new = (p/new_p)*(t_old - current_age)+current_age; \
+								std::pair<event_id, Minutes> input_pair = std::make_pair(cell_reaction_id,t_new);\
+								reaction_schedule.push(input_pair); \
+										\
                 p = new_p;\
             } \
         } \
@@ -172,6 +175,13 @@ public:
                     auto& p = propensities[n_cell][name];\
                     auto new_p = dense::model::reaction_##name.active_rate(neighbor); \
                     total_propensity_ += new_p - p;\
+										\
+										auto cell_reaction_id = encode(n_cell,propensity_network[rid][r]);\
+										Minutes t_old  = reaction_schedule[cell_reaction_id]; \
+										Minutes current_age = age();\
+										Minutes t_new = (p/new_p)*(t_old - current_age)+current_age; \
+										std::pair<event_id, Minutes> input_pair = std::make_pair(cell_reaction_id,t_new);\
+										reaction_schedule.push(input_pair); \
                     p = new_p;\
                 } \
             } \
@@ -216,8 +226,19 @@ public:
   private:
 
     Minutes time_until_next_event () const;
-  
+	
+		event_id encode(Natural cell, reaction_id reaction){
+			Natural rxn_id = static_cast<Natural>(reaction);
+			return (cell*NUM_REACTIONS)+rxn_id;
+		}
+		std::pair<Natural, reaction_id> decode(event_id e){
+			reaction_id rxn_id = static_cast<reaction_id>(e % NUM_REACTIONS);
+			Natural c = e / NUM_REACTIONS;
+			return std::make_pair(c,rxn_id);
+		}
+	
     void initTau();
+
   
 };
 

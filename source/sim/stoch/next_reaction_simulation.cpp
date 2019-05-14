@@ -46,8 +46,8 @@ Minutes Next_Reaction_Simulation::age_by (Minutes duration) {
 Minutes Next_Reaction_Simulation::generateTau(Real propensity) {
   auto r = getRandVariable();
   auto log_inv_r = -std::log(r);
-
-	return Minutes{ log_inv_r/* / propensity */};
+ 
+	return Minutes{ log_inv_r / propensity};
 }
 
 /*
@@ -58,7 +58,7 @@ Minutes Next_Reaction_Simulation::generateTau(Real propensity) {
 Minutes Next_Reaction_Simulation::getSoonestDelay() const {
   return reaction_schedule.empty() ?
     Minutes{ std::numeric_limits<Real>::infinity() } :
-    reaction_schedule.top().time;
+    reaction_schedule.top().second;
 }
 
 Minutes Next_Reaction_Simulation::time_until_next_event() const {
@@ -72,8 +72,10 @@ Minutes Next_Reaction_Simulation::time_until_next_event() const {
  * postcondition: the soonest scheduled delay reaction is removed from the schedule
 */
 void Next_Reaction_Simulation::executeDelayRXN() {
-  event delay_rxn = reaction_schedule.top();
-  fireReaction(delay_rxn.cell, delay_rxn.reaction);
+	std::pair<event_id,Minutes> next_reaction_pair = reaction_schedule.top();
+	std::pair<Natural, reaction_id> pair_ids = decode(next_reaction_pair.first);
+	
+  fireReaction(pair_ids.first, pair_ids.second);
   reaction_schedule.pop();
 }
 
@@ -95,11 +97,11 @@ void Next_Reaction_Simulation::tauLeap(){
 
 	Real propensity_portion = getRandVariable() * get_total_propensity();
 
-	int j = choose_reaction(propensity_portion);
-	int r = j % NUM_REACTIONS;
-	int c = j / NUM_REACTIONS;
+	std::pair<Natural, reaction_id> j = choose_reaction();
+	reaction_id r =j.second;
+	int c = j.first;
 
-    fireOrSchedule(c,(reaction_id)r);
+    fireOrSchedule(c,r);
 }
 
 /*
@@ -111,9 +113,12 @@ void Next_Reaction_Simulation::tauLeap(){
 void Next_Reaction_Simulation::fireOrSchedule(int cell, reaction_id rid){
 
 	delay_reaction_id dri = dense::model::getDelayReactionId(rid);
-
+	
 	if (dri!=NUM_DELAY_REACTIONS) {
-		reaction_schedule.push({ age() + Minutes{ Context(*this, cell).getDelay(dri) }, cell, rid });
+		event_id rxn_id = encode(cell,rid);
+		Minutes reaction_tau = Minutes{ Context(*this, cell).getDelay(dri)};
+		std::pair<event_id, Minutes> reaction_pair = std::make_pair(rxn_id,reaction_tau);
+		reaction_schedule.push(reaction_pair);
 	}
 	else {
 		fireReaction(cell, rid);
@@ -132,7 +137,7 @@ void Next_Reaction_Simulation::fireReaction(dense::Natural cell, reaction_id rid
 	for (int i=0; i<r.getNumDeltas(); i++){
 		update_concentration(cell, specie_deltas[i], r.getDeltas()[i]);
 	}
-	update_propensities(cell, rid);
+	update_propensities_and_taus(cell, rid);
 }
 
 /*
@@ -227,9 +232,6 @@ void Next_Reaction_Simulation::initPropensityNetwork() {
     #undef REACTION
 }
 
-Next_Reaction_Simulation::event_id encode(Natural cell, reaction_id reaction) {
-  return 0;
-};
 
 void Next_Reaction_Simulation::initTau() {
   for( dense::Natural c = 0; c < cell_count(); ++c){
@@ -237,10 +239,12 @@ void Next_Reaction_Simulation::initTau() {
       Context ctxt(*this, c);
       auto tau = generateTau(propensities[c][static_cast<reaction_id>(r)]);
       auto crxnid = encode(c, static_cast<reaction_id>(r));
-      //reaction_schedule.push(crxnid,tau);
+			std::pair<event_id, Minutes> event_pair = std::make_pair(crxnid, tau);
+      reaction_schedule.push(event_pair);
     }
   }
 }
+	
+}}
 
-}
-}
+
